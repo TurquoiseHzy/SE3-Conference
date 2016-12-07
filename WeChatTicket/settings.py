@@ -52,8 +52,6 @@ INSTALLED_APPS = [
     'django.contrib.admin',
 
     'wechat',
-    'adminpage',
-    'userpage',
 ]
 
 MIDDLEWARE_CLASSES = [
