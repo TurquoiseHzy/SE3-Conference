@@ -64,6 +64,5 @@ class APIConf(APIView):
                     'end_date': conf_info['basic']['end_date'],
                     'location': conf_info['basic']['location'],
                     'isPrivate': conf_info['basic']['isPrivate'],
-                    'desc': conf_info['detail']['desc'],
-                    'private_type': conf_info['basic']['private_type']},
+                    'desc': conf_info['detail']['desc'],}
         return context
