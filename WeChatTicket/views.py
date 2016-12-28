@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 #
-from codex.baseview import BaseView
+from codex.baseview import BaseView,APIView
 from WeChatTicket import settings
 
 from django.http import HttpResponse, Http404
-
+import requests
+from codex.baseerror import *
 import logging
 import mimetypes
 import os
@@ -40,3 +41,29 @@ class StaticFileView(BaseView):
         if content is not None:
             return HttpResponse(content, content_type=mimetypes.guess_type(rpath + '/index.html')[0])
         raise Http404('Could not found static file: ' + self.request.path)
+
+
+class APIConf(APIView):
+
+    def getConfInfoById(self, conf_id):
+        postUrl = 'http://60.205.137.139/adminweb/REST/API-V2/confInfo?confid=' + str(conf_id)
+        retInfo = requests.get(postUrl).json()
+        if (retInfo['code'] == 0):
+            return retInfo['data']
+        else:
+            raise ValidateError('会议详情获取失败！')
+
+    def get(self):
+        print(self.input)
+        conf_id = self.input['conf_id']
+        conf_info = self.getConfInfoById(conf_id)
+        context = { 'conf_id': conf_id,
+                    'name': conf_info['basic']['name'],
+                    'image': 'http://60.205.137.139/adminweb/' + conf_info['basic']['image'],
+                    'start_date': conf_info['basic']['start_date'],
+                    'end_date': conf_info['basic']['end_date'],
+                    'location': conf_info['basic']['location'],
+                    'isPrivate': conf_info['basic']['isPrivate'],
+                    'desc': conf_info['detail']['desc'],
+                    'private_type': conf_info['basic']['private_type']},
+        return context

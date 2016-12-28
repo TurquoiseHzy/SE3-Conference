@@ -3,6 +3,7 @@
 from wechat.wrapper import WeChatHandler
 import json
 import requests
+import re
 from wechat.models import *
 from codex.baseerror import *
 
@@ -47,7 +48,7 @@ class GetHelpHandler(WeChatHandler):
 class BindAccountHandler(WeChatHandler):
 
     def check(self):
-        return self.is_text('绑定') or self.is_event_click('bind_account')
+        return self.is_event('scan', 'subscribe')
 
     def handle(self):
         with open('configs.json', 'r') as f:
@@ -72,9 +73,9 @@ class BindAccountHandler(WeChatHandler):
         if (retInfo['code']==0):
             user.user_id = retInfo['data']['id']
             user.save()
-            return self.reply_text('绑定成功！')
-        else:
-            return self.reply_text('绑定失败！')
+            #return self.reply_text('绑定成功！')
+        #else:
+         #   return self.reply_text('绑定失败！')
 
 class GetConferenceListHandler(WeChatHandler):
 
@@ -98,9 +99,8 @@ class GetConferenceListHandler(WeChatHandler):
                 detail = getConfDetailById(conf[i]['id'])
                 news.append({
                     'Title': conf[i]['name'],
-                    'Description': detail['desc'],
                     'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
-                    'Url': detail['website']
+                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
                 })
             # 功能测试：
             # 会议列表为空的判断
@@ -113,7 +113,7 @@ class GetConferenceListHandler(WeChatHandler):
                     user.save()
                     return self.reply_text('当前页已是最后一页，再次点击“全部会议”或者输入“会议”回到第一页。')
             else:
-                #TODO:加一个reply函数和xml模板来显示下一页信息
+
                 news.append({
                     'Title': '当前是第' + str(user.all_conf_page)
                              + '页，再次点击“全部会议”或者输入“会议”进入下一页。',
@@ -149,9 +149,8 @@ class GetUpcomingConferenceListHandler(WeChatHandler):
                 detail = getConfDetailById(conf[i]['id'])
                 news.append({
                     'Title': conf[i]['name'],
-                    'Description': detail['desc'],
                     'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
-                    'Url': detail['website']
+                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
                 })
             # 功能测试：
             # 会议列表为空的判断
@@ -163,7 +162,7 @@ class GetUpcomingConferenceListHandler(WeChatHandler):
                     user.save()
                     return self.reply_text('当前页已是最后一页，再次点击“即将进行的会议”或者输入“即将”回到第一页。')
             else:
-                #TODO:加一个reply函数和xml模板来显示下一页信息
+
                 news.append({
                     'Title': '当前是第' + str(user.upcoming_conf_page)
                              + '页，再次点击“即将进行的会议”或者输入“即将”进入下一页。',
@@ -199,9 +198,8 @@ class GetMyConferenceListHandler(WeChatHandler):
                 detail = getConfDetailById(conf[i]['id'])
                 news.append({
                     'Title': conf[i]['name'],
-                    'Description': detail['desc'],
                     'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
-                    'Url': detail['website']
+                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
                 })
             # 功能测试：
             # 会议列表为空的判断
@@ -213,7 +211,7 @@ class GetMyConferenceListHandler(WeChatHandler):
                     user.save()
                     return self.reply_text('当前页已是最后一页，再次点击“已报名活动”或者输入“我的会议”回到第一页。')
             else:
-                #TODO:加一个reply函数和xml模板来显示下一页信息
+
                 news.append({
                     'Title': '当前是第' + str(user.my_conf_page)
                              + '页，再次点击“已报名活动”或者输入“我的会议”进入下一页。',
@@ -222,6 +220,41 @@ class GetMyConferenceListHandler(WeChatHandler):
                 })
                 user.my_conf_page += 1
                 user.save()
+                return self.reply_news(news)
+        else:
+            return self.reply_text('您的会议获取失败！')
+
+
+class SearchConferenceHandler(WeChatHandler):
+
+    def check(self):
+        return self.is_msg_type('text') and re.match('^搜索 .*$', self.input['Content'])
+
+    def handle(self):
+        content = self.input['Content'][3:]
+        page_size = 10
+        openid = self.input['FromUserName']
+        user = User.get_by_openid(openid)
+        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/searchConfList?userid=' + user.user_id\
+                 + '&page=1&page_size=' + str(page_size) + '&content=' + content
+        retInfo = requests.get(getUrl)
+        retInfo = retInfo.json()
+        if (retInfo['code']==0):
+            news = []
+            conf = retInfo['data']
+            length = len(conf)
+            for i in range(0, length):
+                detail = getConfDetailById(conf[i]['id'])
+                news.append({
+                    'Title': conf[i]['name'],
+                    'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
+                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
+                })
+            # 功能测试：
+            # 会议列表为空的判断
+            if (news == []):
+                return self.reply_text('找不到和您搜索的“'+ content +'”相符的会议。')
+            else:
                 return self.reply_news(news)
         else:
             return self.reply_text('您的会议获取失败！')

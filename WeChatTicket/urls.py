@@ -16,11 +16,12 @@ Including another URLconf
 from django.conf.urls import url, include
 from django.contrib import admin
 
-from wechat.views import CustomWeChatView
-from WeChatTicket.views import StaticFileView
+from wechat.views import *
+from WeChatTicket.views import *
 
 
 urlpatterns = [
     url(r'^wechat/?$', CustomWeChatView.as_view()),
+    url(r'^wechat/api/conf?$', APIConf.as_view()),
     url(r'^', StaticFileView.as_view()),
 ]

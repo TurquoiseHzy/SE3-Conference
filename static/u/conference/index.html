@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+</head>
+<body>
+    <div id="detail"></div>
+    <div id="desc"></div>
+    <button type="button" onclick=jumpToDetail()>报名参会</button>
+</body>
+
+<script type="text/template" id="tpl-detail">
+    <h1>{{conf.name}}</h1>
+    <img src="{{conf.image}}"/>
+    <p>会议开始时间：{{conf.start_date}}</p>
+    <p>会议结束时间：{{conf.end_date}}</p>
+    <p>会议地点：{{conf.location}}</p>
+    <p>isprivate：{{ conf.isPrivate }}</p>
+</script>
+
+<script src="/3rd/jquery.js"></script>
+<script src="/3rd/swig.js"></script>
+<script src="/js/weixin_lib.js"></script>
+<script src="/js/base.js"></script>
+<script src="/js/details.js"></script>
+<script>
+    var locals = {};
+    $(function () {
+        api.get('/wechat/api/conf', {conf_id: urlParam.conf_id}, function (data) {
+            locals.conf = data;
+            console.log(data.desc.length);
+            if(data.desc.length != 0){
+                document.getElementById("desc").innerHTML = data.desc;
+            }
+            $('#detail').html(swig.render($('#tpl-detail').html(), {locals: locals}));
+        }, dftFail);
+    });
+    jumpToDetail = function(){
+        window.location.href = "http://m2.huiplus.com.cn/app/#/confinfo/" + locals.conf.conf_id.toString();
+    }
+
+
+</script>

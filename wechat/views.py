@@ -11,7 +11,7 @@ class CustomWeChatView(WeChatView):
 
     handlers = [
         BindAccountHandler,GetConferenceListHandler,GetUpcomingConferenceListHandler,GetMyConferenceListHandler,
-        GetHelpHandler,
+        GetHelpHandler,SearchConferenceHandler,
     ]
     error_message_handler = ErrorHandler
     default_handler = DefaultHandler
