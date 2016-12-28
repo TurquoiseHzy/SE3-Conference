@@ -2,13 +2,15 @@
 #
 from codex.baseview import BaseView,APIView
 from WeChatTicket import settings
-
+from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponse, Http404
 import requests
 from codex.baseerror import *
+from wechat.models import *
 import logging
 import mimetypes
 import os
+import json
 
 
 __author__ = "Epsirom"
@@ -64,5 +66,130 @@ class APIConf(APIView):
                     'end_date': conf_info['basic']['end_date'],
                     'location': conf_info['basic']['location'],
                     'isPrivate': conf_info['basic']['isPrivate'],
+                    'privateType': conf_info['basic']['privateType'],
                     'desc': conf_info['detail']['desc'],}
         return context
+
+
+class AdminLogin(APIView):
+
+    #检查是否已登录
+    def get(self):
+        if not self.request.user.is_authenticated():
+            raise ValidateError('你尚未登录！')
+
+    #给定username和password，登录
+    def post(self):
+        self.check_input('username', 'password')
+        try:
+            user = authenticate(username=self.input['username'], password=self.input['password'])
+            if user is not None:
+                login(self.request, user)
+            else:
+                raise ValidateError('用户名或密码错误！')
+        except:
+            raise ValidateError('登录出现错误！')
+
+
+class ConferenceList(APIView):
+    def getConfDetailById(self, id):
+        postUrl = 'http://60.205.137.139/adminweb/REST/API-V2/confDetail?confid=' + str(id)
+        retInfo = requests.get(postUrl).json()
+        if (retInfo['code'] == 0):
+            return retInfo['data']
+        else:
+            raise ValidateError('会议详情获取失败！')
+
+    def get(self):
+        page_size = 100
+        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/allConfList?userid=' + '1' + \
+                 '&page=' + '1' + '&page_size=' + str(page_size)
+        retInfo = requests.get(getUrl)
+        retInfo = retInfo.json()
+        news = []
+        print(retInfo)
+        if (retInfo['code']==0):
+            confs = retInfo['data']
+            length = len(confs)
+            for i in range(0, length):
+                detail = {'conf_name':'', 'price':0}
+                conf = Conference.objects.filter(conf_id=confs[i]['id'])
+                if len(conf) != 0:
+                    detail['conf_name'] = conf[0].conf_name
+                    detail['price'] = conf[0].price
+                    detail['conf_id'] = conf[0].conf_id
+                else:
+                    conf = self.getConfDetailById(confs[i]['id'])
+                    detail['conf_name'] = confs[i]['name']
+                    detail['price'] = 0
+                    detail['conf_id'] = confs[i]['id']
+                    new_conf = Conference(conf_id=confs[i]['id'], conf_name=confs[i]['name'],price = 0)
+                    new_conf.save()
+                news.append(detail)
+        return news
+
+
+class ChangePrice(APIView):
+    def post(self):
+        conf = Conference.objects.filter(conf_id=self.input['conf_id'])[0]
+        conf.price = self.input['price']
+        conf.save()
+
+class GetConfPrice(APIView):
+    def get(self):
+        conf = Conference.objects.filter(conf_id=self.input['conf_id'])[0]
+        detail = {
+            'price':conf.price,
+            'conf_name':conf.conf_name,
+        }
+        return detail
+
+class JoinConf(APIView):
+    def post(self):
+        status = 0
+        getUrl = "http://60.205.137.139/adminweb/REST/API-V2/joinConf?userid=" + self.input['user_id'] \
+                 + "&confid=" + self.input['conf_id']
+        retInfo = requests.post(getUrl)
+        retInfo = retInfo.json()
+        if retInfo['code'] == 0:
+            status = 0
+        else:
+            status = -1
+        return status
+
+class Remind(APIView):
+    def get(self):
+        conf_id = self.input['conf_id']
+        with open('configs.json', 'r') as f:
+            data = json.load(f)
+        appid = data['WECHAT_APPID']
+        secret = data['WECHAT_SECRET']
+        get_access_token_url = 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' + appid \
+                               + '&secret=' + secret
+        r = requests.get(get_access_token_url)
+        print (r.text)
+        access_token = r.json()['access_token']
+        requestUrl = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=' + access_token
+        template_id = "cOFQbPqvFFZTgMbbm_cu8htb51MP9-bhSpYZdMg1QOU"
+        for user in User.objects.all():
+            print(user.user_id)
+            page_size = 100
+            if (user.user_id == ""):
+                continue
+            getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/favoriteConfList?userid=' + user.user_id \
+                     + '&page=1&page_size=' + str(page_size)
+            retInfo = requests.get(getUrl)
+            retInfo = retInfo.json()
+            conf = retInfo['data']
+            length = len(conf)
+            inThisConf = 0
+            for i in range(0, length):
+                if str(conf[i]['id']) == conf_id:
+                    inThisConf = 1
+                    break
+            if inThisConf == 1:
+                moreinfourl = settings.get_url('u/conference', {'conf_id': conf_id, 'user_id': user.user_id})
+                message = '{"touser":"%(open_id)s","template_id":"%(template_id)s","url":"%(url)s","data":{}}' \
+                          % {"open_id": user.open_id, "template_id": template_id, "url": moreinfourl}
+                message = message.encode('utf-8')
+                reply = requests.post(requestUrl, data=message).json()

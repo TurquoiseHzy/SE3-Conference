@@ -19,7 +19,8 @@
         </div>
     </div>
 </div>
-<button type="button" onclick=jumpToDetail()>报名参会</button>
+<button type="button" onclick=jumpToDetail()>普通会议</button>
+<button type="button" onclick=jumpToTicket()>付费会议</button>
 </body>
 <script type="text/template" id="tpl-detail">
     <div id="chatbox" style="display:block;width:100%">
@@ -81,7 +82,18 @@
         }, dftFail);
     });
     jumpToDetail = function(){
-        window.location.href = "http://m2.huiplus.com.cn/app/#/confinfo/" + locals.conf.conf_id.toString();
+        api.post("/wechat/api/joinConf", {conf_id: urlParam.conf_id, user_id: urlParam.user_id}, function (data) {
+            if(data == 0){
+                alert("加入会议成功！");
+                window.location.href = "http://m2.huiplus.com.cn/app/#/confinfo/" + urlParam.conf_id;
+            }
+            else{
+                alert("加入会议失败！");
+            }
+        });
+    }
+    jumpToTicket = function(){
+        window.location.href = "./ticket?conf_id=" + urlParam.conf_id + "&user_id=" + urlParam.user_id;
     }
 
 

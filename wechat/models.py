@@ -16,3 +16,8 @@ class User(models.Model):
             return cls.objects.get(open_id=openid)
         except cls.DoesNotExist:
             raise LogicError('User not found')
+
+class Conference(models.Model):
+    conf_id = models.IntegerField(default=0)
+    conf_name = models.CharField(max_length=64, db_index=True, default='')
+    price = models.IntegerField(default=0)

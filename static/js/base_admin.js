@@ -3,7 +3,7 @@ window.location.pathname_with_query_string = function(){
 }
 
 window.loginRequired = function (cb) {
-    api.get('/api/a/login', {}, cb, function () {
+    api.get('/wechat/api/login', {}, cb, function () {
         window.location.href = '/a/login?' + $.param({
             next: window.location.pathname_with_query_string()
         });

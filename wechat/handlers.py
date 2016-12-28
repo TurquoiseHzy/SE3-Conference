@@ -71,7 +71,7 @@ class BindAccountHandler(WeChatHandler):
                       + '&location=' + userInfo['province'] + '&language=' + userInfo['language']
         retInfo = requests.post(userInfoUrl).json()
         if (retInfo['code']==0):
-            user.user_id = retInfo['data']['id']
+            user.user_id = str(retInfo['data']['id'])
             user.save()
             #return self.reply_text('绑定成功！')
         #else:
@@ -86,8 +86,8 @@ class GetConferenceListHandler(WeChatHandler):
         page_size = 5
         openid = self.input['FromUserName']
         user = User.get_by_openid(openid)
-        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/allConfList?userid=' + user.user_id\
-                 + '&page=' + str(user.all_conf_page) + '&page_size=' + str(page_size)
+        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/allConfList?userid=' + user.user_id +\
+                 '&page=' + str(user.all_conf_page) + '&page_size=' + str(page_size)
         retInfo = requests.get(getUrl)
         retInfo = retInfo.json()
         print(retInfo)

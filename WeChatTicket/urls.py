@@ -23,5 +23,11 @@ from WeChatTicket.views import *
 urlpatterns = [
     url(r'^wechat/?$', CustomWeChatView.as_view()),
     url(r'^wechat/api/conf?$', APIConf.as_view()),
+    url(r'^wechat/api/login?$', AdminLogin.as_view()),
+    url(r'^wechat/api/conferenceList?$', ConferenceList.as_view()),
+    url(r'^wechat/api/price?$', ChangePrice.as_view()),
+    url(r'^wechat/api/getConfPrice?$', GetConfPrice.as_view()),
+    url(r'^wechat/api/joinConf?$', JoinConf.as_view()),
+    url(r'^wechat/api/remind?$', Remind.as_view()),
     url(r'^', StaticFileView.as_view()),
 ]
