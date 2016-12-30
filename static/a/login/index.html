@@ -104,7 +104,6 @@
         api.get('/wechat/api/login', {}, function (data) {
             window.location.href = '/a/conference/list';
         }, function () {
-            alert("!");
             $('#loginnow').attr('disabled', false);
             api.form($('#form-login'), function (data) {
                 if (urlParam.next) {

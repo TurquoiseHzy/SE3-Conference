@@ -23,7 +23,7 @@ class CustomWeChatView(WeChatView):
                 "sub_button": [
                     {
                         "type": "click",
-                        "name": "已报名活动",
+                        "name": "我的会议",
                         "key": "my_conf"
                     },
                     {

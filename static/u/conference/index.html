@@ -8,7 +8,7 @@
     <title>会佳</title>
     <link rel="stylesheet" type="text/css" href="/u/conference/style.css" />
     <!--[if lt IE 8]><script src="/u/conference/json3.min.js"></script><![endif]-->
-
+    <link href="/3rd/bs/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
 </head>
 <body>
 <div id="detail"></div>
@@ -19,8 +19,7 @@
         </div>
     </div>
 </div>
-<button type="button" onclick=jumpToDetail()>普通会议</button>
-<button type="button" onclick=jumpToTicket()>付费会议</button>
+<div id="followed"></div>
 </body>
 <script type="text/template" id="tpl-detail">
     <div id="chatbox" style="display:block;width:100%">
@@ -63,8 +62,16 @@
     </div>
 </script>
 
-<script type="text/template" id="tpl-desc">
 
+
+<script type="text/template" id="tpl-followed">
+    {% if conf.followed %}
+        <button type="button" class="btn btn-primary btn-lg btn-block" onclick=jumpTohuijia()>进入会佳页面</button>
+        <button type="button" class="btn btn-danger btn-lg btn-block"  onclick=quitConf() >退出当前会议</button>
+    {% else %}
+        <button type="button" class="btn btn-primary btn-lg btn-block" onclick=jumpToDetail()>加入普通会议</button>
+        <button type="button" class="btn btn-primary btn-lg btn-block" onclick=jumpToTicket()>加入付费会议</button>
+    {% endif %}
 </script>
 <script src="/3rd/jquery.js"></script>
 <script src="/3rd/swig.js"></script>
@@ -74,16 +81,16 @@
 <script>
     var locals = {};
     $(function () {
-        api.get('/wechat/api/conf', {conf_id: urlParam.conf_id}, function (data) {
+        api.get('/wechat/api/conf', {conf_id: urlParam.conf_id, user_id: urlParam.user_id}, function (data) {
             locals.conf = data;
-            console.log(data);
             document.getElementById('desc').innerHTML = data.desc;
             $('#detail').html(swig.render($('#tpl-detail').html(), {locals: locals}));
+            $('#followed').html(swig.render($('#tpl-followed').html(), {locals: locals}));
         }, dftFail);
     });
     jumpToDetail = function(){
         api.post("/wechat/api/joinConf", {conf_id: urlParam.conf_id, user_id: urlParam.user_id}, function (data) {
-            if(data == 0){
+            if(data){
                 alert("加入会议成功！");
                 window.location.href = "http://m2.huiplus.com.cn/app/#/confinfo/" + urlParam.conf_id;
             }
@@ -95,6 +102,18 @@
     jumpToTicket = function(){
         window.location.href = "./ticket?conf_id=" + urlParam.conf_id + "&user_id=" + urlParam.user_id;
     }
+    quitConf = function () {
+        if(window.confirm('你确定要退出会议吗？')){
+            api.post("/wechat/api/quitConf", {conf_id: urlParam.conf_id, user_id: urlParam.user_id}, function(data) {
+                if(data){
+                    alert("成功退出该会议！");
+                    window.location.reload(true);
+                }
+            });
+        }
+    }
 
-
+    jumpTohuijia = function(){
+        window.location.href = "http://m2.huiplus.com.cn/app/#/confinfo/" + urlParam.conf_id;
+    }
 </script>

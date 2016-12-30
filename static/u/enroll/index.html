@@ -58,7 +58,7 @@
 <script>
     jumpToDetail = function() {
         api.post("/wechat/api/joinConf", {conf_id: urlParam.conf_id, user_id: urlParam.user_id}, function (data) {
-            if(data == 0){
+            if(data){
                 alert("加入会议成功！");
                 window.location.href = "http://m2.huiplus.com.cn/app/#/confinfo/" + urlParam.conf_id;
             }

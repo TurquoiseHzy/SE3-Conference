@@ -56,8 +56,9 @@ class APIConf(APIView):
             raise ValidateError('会议详情获取失败！')
 
     def get(self):
-        print(self.input)
         conf_id = self.input['conf_id']
+        user_id = self.input['user_id']
+        followed = checkFollower(conf_id,user_id)
         conf_info = self.getConfInfoById(conf_id)
         context = { 'conf_id': conf_id,
                     'name': conf_info['basic']['name'],
@@ -67,7 +68,8 @@ class APIConf(APIView):
                     'location': conf_info['basic']['location'],
                     'isPrivate': conf_info['basic']['isPrivate'],
                     'privateType': conf_info['basic']['privateType'],
-                    'desc': conf_info['detail']['desc'],}
+                    'desc': conf_info['detail']['desc'],
+                    'followed' : followed,}
         return context
 
 
@@ -146,16 +148,43 @@ class GetConfPrice(APIView):
 
 class JoinConf(APIView):
     def post(self):
-        status = 0
+        status = False
         getUrl = "http://60.205.137.139/adminweb/REST/API-V2/joinConf?userid=" + self.input['user_id'] \
                  + "&confid=" + self.input['conf_id']
         retInfo = requests.post(getUrl)
         retInfo = retInfo.json()
         if retInfo['code'] == 0:
-            status = 0
+            status = True
         else:
-            status = -1
+            status = False
         return status
+
+class QuitConf(APIView):
+    def post(self):
+        status = False
+        getUrl = "http://60.205.137.139/adminweb/REST/API-V2/cancelConf?userid=" + self.input['user_id'] \
+                 + "&confid=" + self.input['conf_id']
+        retInfo = requests.post(getUrl)
+        retInfo = retInfo.json()
+        if retInfo['code'] == 0:
+            status = True
+        else:
+            status = False
+        return status
+
+
+def checkFollower(conf_id, user_id):
+    page_size = 100
+    getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/favoriteConfList?userid=' + user_id \
+             + '&page=1&page_size=' + str(page_size)
+    retInfo = requests.get(getUrl)
+    retInfo = retInfo.json()
+    conf = retInfo['data']
+    length = len(conf)
+    for i in range(0, length):
+        if str(conf[i]['id']) == conf_id:
+            return True
+    return False
 
 class Remind(APIView):
     def get(self):
@@ -170,26 +199,15 @@ class Remind(APIView):
         print (r.text)
         access_token = r.json()['access_token']
         requestUrl = 'https://api.weixin.qq.com/cgi-bin/message/template/send?access_token=' + access_token
-        template_id = "cOFQbPqvFFZTgMbbm_cu8htb51MP9-bhSpYZdMg1QOU"
+        template_id = "v7_-4_4is1o6UdwEJtko_UXPuA-4P_AA42epeF-QcZw"
         for user in User.objects.all():
-            print(user.user_id)
-            page_size = 100
             if (user.user_id == ""):
                 continue
-            getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/favoriteConfList?userid=' + user.user_id \
-                     + '&page=1&page_size=' + str(page_size)
-            retInfo = requests.get(getUrl)
-            retInfo = retInfo.json()
-            conf = retInfo['data']
-            length = len(conf)
-            inThisConf = 0
-            for i in range(0, length):
-                if str(conf[i]['id']) == conf_id:
-                    inThisConf = 1
-                    break
-            if inThisConf == 1:
+            if checkFollower(conf_id, user.user_id):
                 moreinfourl = settings.get_url('u/conference', {'conf_id': conf_id, 'user_id': user.user_id})
-                message = '{"touser":"%(open_id)s","template_id":"%(template_id)s","url":"%(url)s","data":{}}' \
-                          % {"open_id": user.open_id, "template_id": template_id, "url": moreinfourl}
+                postUrl = 'http://60.205.137.139/adminweb/REST/API-V2/confInfo?confid=' + str(conf_id)
+                retInfo = requests.get(postUrl).json()
+                message = '{"touser":"%(open_id)s","template_id":"%(template_id)s","url":"%(url)s","data":{"conference":{"value":"%(conf_name)s","color":"#173177"}}}' \
+                          % {"open_id": user.open_id, "template_id": template_id, "url": moreinfourl, "conf_name" : retInfo['data']['basic']['name']}
                 message = message.encode('utf-8')
-                reply = requests.post(requestUrl, data=message).json()
+                requests.post(requestUrl, data=message).json()

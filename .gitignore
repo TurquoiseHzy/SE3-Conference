@@ -65,6 +65,5 @@ target/
 .idea
 
 # Custom files
-/configs.json
 /media/*
 nothing/

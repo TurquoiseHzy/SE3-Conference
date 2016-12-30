@@ -28,6 +28,7 @@ urlpatterns = [
     url(r'^wechat/api/price?$', ChangePrice.as_view()),
     url(r'^wechat/api/getConfPrice?$', GetConfPrice.as_view()),
     url(r'^wechat/api/joinConf?$', JoinConf.as_view()),
+    url(r'^wechat/api/quitConf?$', QuitConf.as_view()),
     url(r'^wechat/api/remind?$', Remind.as_view()),
     url(r'^', StaticFileView.as_view()),
 ]

@@ -6,6 +6,7 @@ import requests
 import re
 from wechat.models import *
 from codex.baseerror import *
+from WeChatTicket import settings
 
 __author__ = "Epsirom"
 
@@ -76,6 +77,24 @@ class BindAccountHandler(WeChatHandler):
             #return self.reply_text('绑定成功！')
         #else:
          #   return self.reply_text('绑定失败！')
+def getConfList(interface, user_id, page, page_size):
+    getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/'+interface+'?userid=' + user_id + \
+             '&page=' + str(page) + '&page_size=' + str(page_size)
+    retInfo = requests.get(getUrl)
+    retInfo = retInfo.json()
+    news = []
+    if (retInfo['code'] == 0):
+        conf = retInfo['data']
+        length = len(conf)
+        for i in range(0, length):
+            news.append({
+                'Title': conf[i]['name'],
+                'PicUrl': 'http://60.205.137.139/adminweb/' + conf[i]['image'],
+                'Url': settings.get_url('u/conference', {'conf_id': conf[i]['id'], 'user_id': user_id})
+            })
+    return news
+
+
 
 class GetConferenceListHandler(WeChatHandler):
 
@@ -86,45 +105,22 @@ class GetConferenceListHandler(WeChatHandler):
         page_size = 5
         openid = self.input['FromUserName']
         user = User.get_by_openid(openid)
-        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/allConfList?userid=' + user.user_id +\
-                 '&page=' + str(user.all_conf_page) + '&page_size=' + str(page_size)
-        retInfo = requests.get(getUrl)
-        retInfo = retInfo.json()
-        print(retInfo)
-        if (retInfo['code']==0):
-            news = []
-            conf = retInfo['data']
-            length = len(conf)
-            for i in range(0, length):
-                detail = getConfDetailById(conf[i]['id'])
-                news.append({
-                    'Title': conf[i]['name'],
-                    'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
-                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
-                })
-            # 功能测试：
-            # 会议列表为空的判断
-            print(user.all_conf_page)
-            if (news == []):
-                if (user.all_conf_page == 1):
-                    return self.reply_text('当前没有会议。')
-                else:
-                    user.all_conf_page = 1
-                    user.save()
-                    return self.reply_text('当前页已是最后一页，再次点击“全部会议”或者输入“会议”回到第一页。')
+        news = getConfList('allConfList', user.user_id, user.all_conf_page, page_size)
+        if (news == []):
+            if (user.all_conf_page == 1):
+                return self.reply_text('当前没有会议。')
             else:
-
-                news.append({
-                    'Title': '当前是第' + str(user.all_conf_page)
-                             + '页，再次点击“全部会议”或者输入“会议”进入下一页。',
-                    'Description': '',
-                    'Url': 'about:blank'
-                })
-                user.all_conf_page += 1
+                user.all_conf_page = 1
                 user.save()
-                return self.reply_news(news)
-        else:
-            return self.reply_text('会议列表获取失败！')
+                news = getConfList('allConfList', user.user_id, user.all_conf_page, page_size)
+        news.append({
+            'Title': '当前是第' + str(user.all_conf_page)
+                     + '页，再次点击“全部会议”进入下一页。',
+            'Url': 'about:blank',
+        })
+        user.all_conf_page += 1
+        user.save()
+        return self.reply_news(news)
 
 
 class GetUpcomingConferenceListHandler(WeChatHandler):
@@ -136,44 +132,22 @@ class GetUpcomingConferenceListHandler(WeChatHandler):
         page_size = 5
         openid = self.input['FromUserName']
         user = User.get_by_openid(openid)
-        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/upcomingConfList?userid=' + user.user_id\
-                 + '&page=' + str(user.upcoming_conf_page) + '&page_size=' + str(page_size)
-        retInfo = requests.get(getUrl)
-        retInfo = retInfo.json()
-        print(retInfo)
-        if (retInfo['code']==0):
-            news = []
-            conf = retInfo['data']
-            length = len(conf)
-            for i in range(0, length):
-                detail = getConfDetailById(conf[i]['id'])
-                news.append({
-                    'Title': conf[i]['name'],
-                    'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
-                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
-                })
-            # 功能测试：
-            # 会议列表为空的判断
-            if (news == []):
-                if (user.upcoming_conf_page == 1):
-                    return self.reply_text('当前没有即将进行的会议。')
-                else:
-                    user.upcoming_conf_page = 1
-                    user.save()
-                    return self.reply_text('当前页已是最后一页，再次点击“即将进行的会议”或者输入“即将”回到第一页。')
+        news = getConfList('upcomingConfList', user.user_id, user.upcoming_conf_page, page_size)
+        if (news == []):
+            if (user.upcoming_conf_page == 1):
+                return self.reply_text('当前没有即将进行的会议。')
             else:
-
-                news.append({
-                    'Title': '当前是第' + str(user.upcoming_conf_page)
-                             + '页，再次点击“即将进行的会议”或者输入“即将”进入下一页。',
-                    'Description': '',
-                    'Url': 'about:blank'
-                })
-                user.upcoming_conf_page += 1
+                user.upcoming_conf_page = 1
                 user.save()
-                return self.reply_news(news)
-        else:
-            return self.reply_text('即将进行会议获取失败！')
+                news = getConfList('upcomingConfList', user.user_id, user.upcoming_conf_page, page_size)
+        news.append({
+            'Title': '当前是第' + str(user.upcoming_conf_page)
+                     + '页，再次点击“即将进行的会议”进入下一页。',
+            'Url': 'about:blank'
+        })
+        user.upcoming_conf_page += 1
+        user.save()
+        return self.reply_news(news)
 
 
 class GetMyConferenceListHandler(WeChatHandler):
@@ -185,44 +159,22 @@ class GetMyConferenceListHandler(WeChatHandler):
         page_size = 5
         openid = self.input['FromUserName']
         user = User.get_by_openid(openid)
-        getUrl = 'http://60.205.137.139/adminweb/REST/API-V2/favoriteConfList?userid=' + user.user_id\
-                 + '&page=' + str(user.my_conf_page) + '&page_size=' + str(page_size)
-        retInfo = requests.get(getUrl)
-        retInfo = retInfo.json()
-        print(retInfo)
-        if (retInfo['code']==0):
-            news = []
-            conf = retInfo['data']
-            length = len(conf)
-            for i in range(0, length):
-                detail = getConfDetailById(conf[i]['id'])
-                news.append({
-                    'Title': conf[i]['name'],
-                    'PicUrl': 'http://60.205.137.139/adminweb/'+conf[i]['image'],
-                    'Url': self.url_conf_detail(conf[i]['id'], user.user_id),
-                })
-            # 功能测试：
-            # 会议列表为空的判断
-            if (news == []):
-                if (user.my_conf_page == 1):
-                    return self.reply_text('您还没有报名会议。')
-                else:
-                    user.my_conf_page = 1
-                    user.save()
-                    return self.reply_text('当前页已是最后一页，再次点击“已报名活动”或者输入“我的会议”回到第一页。')
+        news = getConfList('favoriteConfList', user.user_id, user.my_conf_page, page_size)
+        if (news == []):
+            if (user.my_conf_page == 1):
+                return self.reply_text('您还没有报名会议。')
             else:
-
-                news.append({
-                    'Title': '当前是第' + str(user.my_conf_page)
-                             + '页，再次点击“已报名活动”或者输入“我的会议”进入下一页。',
-                    'Description': '',
-                    'Url': 'about:blank'
-                })
-                user.my_conf_page += 1
+                user.my_conf_page = 1
                 user.save()
-                return self.reply_news(news)
-        else:
-            return self.reply_text('您的会议获取失败！')
+                news = getConfList('favoriteConfList', user.user_id, user.my_conf_page, page_size)
+        news.append({
+            'Title': '当前是第' + str(user.my_conf_page)
+                     + '页，再次点击“我的会议”进入下一页。',
+            'Url': 'about:blank'
+        })
+        user.my_conf_page += 1
+        user.save()
+        return self.reply_news(news)
 
 
 class SearchConferenceHandler(WeChatHandler):
