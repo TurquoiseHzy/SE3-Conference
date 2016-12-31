@@ -90,7 +90,7 @@ def getConfList(interface, user_id, page, page_size):
             news.append({
                 'Title': conf[i]['name'],
                 'PicUrl': 'http://60.205.137.139/adminweb/' + conf[i]['image'],
-                'Url': settings.get_url('u/conference', {'conf_id': conf[i]['id'], 'user_id': user_id})
+                'Url': settings.get_url('u/conference', {'conf_id': str(conf[i]['id']), 'user_id': user_id})
             })
     return news
 
@@ -120,6 +120,7 @@ class GetConferenceListHandler(WeChatHandler):
         })
         user.all_conf_page += 1
         user.save()
+
         return self.reply_news(news)
 
 

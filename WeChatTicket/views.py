@@ -204,7 +204,7 @@ class Remind(APIView):
             if (user.user_id == ""):
                 continue
             if checkFollower(conf_id, user.user_id):
-                moreinfourl = settings.get_url('u/conference', {'conf_id': conf_id, 'user_id': user.user_id})
+                moreinfourl = settings.get_url('u/conference', {'conf_id': str(conf_id), 'user_id': user.user_id})
                 postUrl = 'http://60.205.137.139/adminweb/REST/API-V2/confInfo?confid=' + str(conf_id)
                 retInfo = requests.get(postUrl).json()
                 message = '{"touser":"%(open_id)s","template_id":"%(template_id)s","url":"%(url)s","data":{"conference":{"value":"%(conf_name)s","color":"#173177"}}}' \

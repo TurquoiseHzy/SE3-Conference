@@ -90,10 +90,10 @@ class WeChatHandler(object):
         return settings.get_url('u/bind', {'openid': self.user.open_id})
 
     def url_conf_detail(self, conf_id, user_id):
-        return settings.get_url('u/conference', {'conf_id': conf_id, 'user_id': user_id})
+        return settings.get_url('u/conference', {'conf_id': str(conf_id), 'user_id': user_id})
 
     def url_conf_price(self, conf_id, user_id):
-        return settings.get_url('u/ticket', {'conf_id': conf_id, 'user_id': user_id})
+        return settings.get_url('u/ticket', {'conf_id': str(conf_id), 'user_id': user_id})
 
 class WeChatEmptyHandler(WeChatHandler):
 
